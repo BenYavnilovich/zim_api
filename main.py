@@ -3,12 +3,18 @@ from libzim.reader import Archive
 from flask import Flask
 import json
 
-def get_zims(zim_path) -> dict:
-    """retrives all zim archives from a given directory and returns them as a dict"""
-    zims = [x for x in os.listdir(zim_path) if x[-4::1] == ".zim"]
-    return {zims[i][0:-4]: Archive(rf"{zim_path}\{zims[i]}") for i in range(len(zims))}
+def get_zims(zim_folder_name,is_full_path=False) -> dict:
+    """
+    retrives all zim archives from a given directory and returns them as a dict
+    pass ",True" if you don't want to use relative path
+    """
+    zims = [x for x in os.listdir(zim_folder_name) if x[-4::1] == ".zim"]
 
-ZIMS = get_zims(r"C:\Users\Ben\OneDrive\Documents\learning\homelab\zim\zimfiles")
+    # very lazy i know, but it works. so shut up
+    if is_full_path: return {zims[i][0:-4]: Archive(zim_folder_name,zims[i]) for i in range(len(zims))}
+    return {zims[i][0:-4]: Archive(os.path.join(os.getcwd(),zim_folder_name,zims[i])) for i in range(len(zims))}
+
+ZIMS = get_zims("zimfiles") # pass ",True" if you don't want to use relative path
 app = Flask(__name__)
 @app.route('/')
 def inex():

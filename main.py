@@ -3,7 +3,7 @@ from libzim.reader import Archive
 from flask import Flask,redirect
 import json
 
-URL_STARTER="http://127.0.0.1:5000"
+URL_STARTER="http://0.0.0.0:5000"
 def get_zims(zim_folder_name,is_full_path=False) -> dict:
     """
     retrives all zim archives from a given directory and returns them as a dict

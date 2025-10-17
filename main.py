@@ -1,8 +1,9 @@
 import os
 from libzim.reader import Archive
-from flask import Flask
+from flask import Flask,redirect
 import json
 
+URL_STARTER="http://127.0.0.1:5000"
 def get_zims(zim_folder_name,is_full_path=False) -> dict:
     """
     retrives all zim archives from a given directory and returns them as a dict
@@ -41,37 +42,45 @@ def get_index_readable(zimName):
         output += f"{entry.title} : {entry.path} <br>"
     return output
 
-@app.route("/<string:zimName>/index")
+@app.route("/<string:zimName>/index/")
 def get_index(zimName):
+    return redirect(f"/{zimName}/index/0")
+
+@app.route("/<string:zimName>/index/<int:paging_min>")
+def get_index_paging(zimName,paging_min):
     """returns index of given zim in json"""
     if not zimName in ZIMS:
         return f'zim file "{zimName}" not found, available zims:<br/>{"<br/>".join(ZIMS.keys())}', 404
     zim = ZIMS[zimName]
+    paging_max = paging_min + 1000
 
-    json = {"zim":zimName, "articles" : []}
-    for i in range(zim.all_entry_count):
-        entry = zim._get_entry_by_id(i)
-        json["articles"].append({"title": entry.title, "url": entry.path})
-    """
-    output='{ "articles": ['
-    entry = zim._get_entry_by_id(1)
-    output += '{"title":' + json.dumps(entry.title) + ' , "url":' + json.dumps(entry.path) + '}'
+    # make sure paiging doesn't exeed number of articles
+    if paging_max > zim.all_entry_count: paging_max = zim.all_entry_count
 
-    for i in range(2,zim.all_entry_count):
+    output = {"zim":zimName, "articles" : []}
+    for i in range(paging_min,paging_max):
         entry = zim._get_entry_by_id(i)
-        output += ',{"title":' + json.dumps(entry.title) + ' , "url":' + json.dumps(entry.path) + '}'
-    output += "] }"
-    """
-    return json
+        output["articles"].append({"title": entry.title, "url": entry.path, "article_id":i})
+        #output["articles"].append({"title": entry.title, "url": f"{URL_STARTER}/{zimName}/{i}", "article_id": i})
+
+    return json.dumps(output)
+
+@app.route("/<string:zimName>/<int:articleID>")
+def get_article_by_id(zimName, articleID):
+    if not zimName in ZIMS:
+        return f'zim file "{zimName}" not found, available zims:\n{"<br/>".join(ZIMS.keys())}',404
+    if ZIMS[zimName].all_entry_count <= articleID: return f"this zim hasd only {ZIMS[zimName].all_entry_count} articles", 404
+    if articleID < 0: return "haha, verry funny... negative article id", 404
+    return f"{bytes(ZIMS[zimName]._get_entry_by_id(articleID).get_item().content).decode('utf-8')}"
 
 @app.route("/<string:zimName>/<path:articlePath>")
 def get_article(zimName,articlePath):
     """returns html of requested article (js currently doesn't work)"""
     if not zimName in ZIMS:
-        return f'zim file "{zimName}" not found, available zims:\n{"<br/>".join(ZIMS.keys())}'
+        return f'zim file "{zimName}" not found, available zims:\n{"<br/>".join(ZIMS.keys())}', 404
     print(f"if not ZIMS[{zimName}].has_entry_by_path({articlePath})\n {type(articlePath)}")
     if not ZIMS[zimName].has_entry_by_path(f"{articlePath}"):
-        return f'"{zimName}" cant find the article "{articlePath}"'
+        return f'"{zimName}" cant find the article "{articlePath}"', 404
     return f"{bytes(ZIMS[zimName].get_entry_by_path(articlePath).get_item().content).decode('utf-8')}"
 
 @app.route('/<float:revNo>')

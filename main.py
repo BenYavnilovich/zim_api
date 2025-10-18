@@ -2,20 +2,29 @@ import os
 from libzim.reader import Archive
 from flask import Flask,redirect
 import json
+import sys
+import argparse
 
-URL_STARTER="http://0.0.0.0:5000"
-def get_zims(zim_folder_name,is_full_path=False) -> dict:
+
+def get_zims(zim_folder_path) -> dict:
     """
     retrives all zim archives from a given directory and returns them as a dict
-    pass ",True" if you don't want to use relative path
     """
-    zims = [x for x in os.listdir(zim_folder_name) if x[-4::1] == ".zim"]
+    zims = [x for x in os.listdir(zim_folder_path) if x[-4::1] == ".zim"]
+    return {zims[i][0:-4]: Archive(os.path.join(zim_folder_path,zims[i])) for i in range(len(zims))}
 
-    # very lazy i know, but it works. so shut up
-    if is_full_path: return {zims[i][0:-4]: Archive(zim_folder_name,zims[i]) for i in range(len(zims))}
-    return {zims[i][0:-4]: Archive(os.path.join(os.getcwd(),zim_folder_name,zims[i])) for i in range(len(zims))}
+parser = argparse.ArgumentParser()
+parser.add_argument('-z', '--zim-path', default="zimfiles", help="path to the direcotry where the zim fiels are located")
+args = parser.parse_args()
+print(args)
 
-ZIMS = get_zims("zimfiles") # pass ",True" if you don't want to use relative path
+if os.path.isabs(args.zim_path):
+    zim_path=args.zim_path
+else:
+    root_dir = os.path.dirname(os.path.abspath(__file__))
+    zim_path=os.path.join(root_dir,args.zim_path)
+ZIMS = get_zims(zim_path)
+
 app = Flask(__name__)
 @app.route('/')
 def inex():
@@ -89,3 +98,5 @@ def revision(revNo):
 
 if __name__ == '__main__':
     app.run(debug=True)
+    URL_STARTER = "http://0.0.0.0:5000"
+

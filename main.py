@@ -15,6 +15,8 @@ def get_zims(zim_folder_path) -> dict:
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-z', '--zim-path', default="zimfiles", help="path to the direcotry where the zim fiels are located")
+parser.add_argument('-e','--external',  action="store_true", help="trigger to expose the app outside of localhost\n"
+                                                                  "misght require firewall rule")
 args = parser.parse_args()
 print(args)
 
@@ -97,6 +99,9 @@ def revision(revNo):
     return 'Revision Number %f' % revNo
 
 if __name__ == '__main__':
-    app.run(debug=True)
-    URL_STARTER = "http://0.0.0.0:5000"
+    if args.external:
+        app.run(debug=True, host="0.0.0.0")
+    else:
+        app.run(debug=True)
+    #URL_STARTER = "http://0.0.0.0:5000"
 
